@@ -1,2 +1,2 @@
-# project_template
-a template of cpp project setup
+# directX
+a practice project for d3d12 learning
