@@ -1,3 +1,9 @@
+cbuffer cb : register(b0)
+{
+    float4x4 c_model;
+    float4x4 c_vp;
+};
+
 struct VSInput
 {
     float3 position : POSITION;
@@ -13,7 +19,7 @@ struct PSInput
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.position = float4(input.position, 1.f);
+    output.position = mul(mul(float4(input.position, 1.f), c_model), c_vp);
     output.color = input.color;
     return output;
 }
