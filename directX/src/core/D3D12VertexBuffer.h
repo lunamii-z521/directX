@@ -11,15 +11,18 @@ class D3D12VertexBuffer_InputDesc
 public:
     D3D12VertexBuffer_InputDesc() = default;
     D3D12VertexBuffer_InputDesc(std::initializer_list<D3D12VertexBuffer_InputDesc_Elem> list);
-
     D3D12VertexBuffer_InputDesc(const D3D12VertexBuffer_InputDesc& other);
+
     D3D12VertexBuffer_InputDesc& operator=(const D3D12VertexBuffer_InputDesc& other);
 
     size_t GetStride() const;
     D3D12_INPUT_LAYOUT_DESC GetInputLayoutDesc() const;
 
 private:
-    void RebuildElementDescs();
+    /*  helper to copy data from another D3D12VertexBuffer_InputDesc
+        the reason why we cannot directly copy the semantics names is because
+        D3D12_INPUT_ELEMENT_DESC::SemanticName is a const char*, which might cause dangling ptr */
+    void CopyElementDescs(const D3D12VertexBuffer_InputDesc& other);
 
     // Store persistent elements and strings so pointers never dangle
     std::vector<std::string> m_semanticNames;

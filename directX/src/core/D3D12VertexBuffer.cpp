@@ -4,19 +4,15 @@
 #include "D3D12Context.h"
 extern D3D12Context context;
 
-// --- Input Desc Implementation ---
 D3D12VertexBuffer_InputDesc::D3D12VertexBuffer_InputDesc(std::initializer_list<D3D12VertexBuffer_InputDesc_Elem> list)
 {
+    for (auto& elem : list) m_semanticNames.push_back(elem.SemanticsName);
+    
     uint32_t idx = 0;
     for (auto& elem : list)
     {
-        // 1. Store string persistently in member vector
-        m_semanticNames.push_back(elem.SemanticsName);
-        std::string& storedName = m_semanticNames.back();
-
-        // 2. Build D3D12 input element desc safely referencing persistent strings
         D3D12_INPUT_ELEMENT_DESC d3dElem = {};
-        d3dElem.SemanticName = storedName.c_str();
+        d3dElem.SemanticName = m_semanticNames[idx].c_str();
         d3dElem.SemanticIndex = 0;
         d3dElem.Format = elem.Format;
         d3dElem.InputSlot = 0;
@@ -28,41 +24,31 @@ D3D12VertexBuffer_InputDesc::D3D12VertexBuffer_InputDesc(std::initializer_list<D
         idx++;
     }
 }
-
-D3D12VertexBuffer_InputDesc::D3D12VertexBuffer_InputDesc(const D3D12VertexBuffer_InputDesc& other)
-{
-    m_semanticNames = other.m_semanticNames;
-    RebuildElementDescs();
-}
+D3D12VertexBuffer_InputDesc::D3D12VertexBuffer_InputDesc(const D3D12VertexBuffer_InputDesc& other) { CopyElementDescs(other); }
 
 // Custom Copy Assignment Operator
 D3D12VertexBuffer_InputDesc& D3D12VertexBuffer_InputDesc::operator=(const D3D12VertexBuffer_InputDesc& other)
 {
-    if (this != &other)
-    {
-        m_semanticNames = other.m_semanticNames;
-        RebuildElementDescs();
-    }
+    if (this != &other) CopyElementDescs(other);
     return *this;
 }
 
-void D3D12VertexBuffer_InputDesc::RebuildElementDescs()
+void D3D12VertexBuffer_InputDesc::CopyElementDescs(const D3D12VertexBuffer_InputDesc& other)
 {
     m_elementDescs.clear();
+    m_semanticNames = other.m_semanticNames;
     uint32_t idx = 0;
     for (size_t i = 0; i < m_semanticNames.size(); ++i)
     {
         D3D12_INPUT_ELEMENT_DESC d3dElem = {};
-        d3dElem.SemanticName = m_semanticNames[i].c_str(); // Points safely to THIS object's string
-        d3dElem.SemanticIndex = 0;
+        d3dElem.SemanticName = m_semanticNames[i].c_str();
+        d3dElem.SemanticIndex = other.m_elementDescs[i].SemanticIndex;
 
-        // Match formats based on your setup (POSITION = 3 floats, COLOR = 4 floats)
-        // For general use, you can store formats alongside semantic names, but keeping it robust:
-        d3dElem.Format = (i == 0) ? DXGI_FORMAT_R32G32B32_FLOAT : DXGI_FORMAT_R32G32B32A32_FLOAT;
-        d3dElem.InputSlot = 0;
-        d3dElem.AlignedByteOffset = (idx == 0) ? 0 : D3D12_APPEND_ALIGNED_ELEMENT;
-        d3dElem.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-        d3dElem.InstanceDataStepRate = 0;
+        d3dElem.Format = other.m_elementDescs[i].Format;
+        d3dElem.InputSlot = other.m_elementDescs[i].InputSlot;
+        d3dElem.AlignedByteOffset = other.m_elementDescs[i].AlignedByteOffset;
+        d3dElem.InputSlotClass = other.m_elementDescs[i].InputSlotClass;
+        d3dElem.InstanceDataStepRate = other.m_elementDescs[i].InstanceDataStepRate;
 
         m_elementDescs.push_back(d3dElem);
         idx++;
@@ -86,14 +72,10 @@ size_t D3D12VertexBuffer_InputDesc::GetStride() const
     {
         switch (elem.Format)
         {
-        case DXGI_FORMAT_R32G32B32_FLOAT:
-            stride += 12;
-            break;
-        case DXGI_FORMAT_R32G32B32A32_FLOAT:
-            stride += 16;
-            break;
-        default:
-            break;
+        case DXGI_FORMAT_R32G32_FLOAT:      stride += 8;  break;
+        case DXGI_FORMAT_R32G32B32_FLOAT:   stride += 12; break;
+        case DXGI_FORMAT_R32G32B32A32_FLOAT:stride += 16; break;
+        default: break;
         }
     }
     return stride;
